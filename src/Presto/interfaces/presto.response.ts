@@ -23,9 +23,9 @@ export interface PrestoResponse {
     id: string;
     infoUri: string;
     nextUri: string;
-    stats: Stats;
-    data: Array<any>;
-    warnings: any[];
+    stats?: Stats;
+    data?: Array<any>;
+    warnings?: any[];
 }
 
 

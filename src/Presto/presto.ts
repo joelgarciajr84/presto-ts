@@ -22,6 +22,10 @@ export class Presto {
 
     private async request(): Promise<AxiosInstance> {
         try {
+            let basicAuthParam: string
+            if(this.params.isBasicAuth){
+                basicAuthParam = 'Basic ' + Buffer.from(this.params.user + ":" + this.params.password).toString("base64")
+            }
             return axios.create({
                 baseURL: `http://${this.params.host}:${this.params.port}`,
                 headers: {
@@ -30,7 +34,8 @@ export class Presto {
                     [PrestoHeaders.SCHEMA]: this.params.schema,
                     [PrestoHeaders.SOURCE]: this.params.source,
                     [PrestoHeaders.USER_AGENT]: this.params.source,
-                    // [PrestoHeaders.AUTHORIZATION]: 'Basic ' + new Buffer(this.params.user + ":" + this.params.password).toString("base64")
+                    [PrestoHeaders.AUTHORIZATION]:basicAuthParam
+                    
                 },
                 httpAgent: new http.Agent(this.httpAgentOptions || {}),
                 httpsAgent: new https.Agent(this.httpAgentOptions || {})

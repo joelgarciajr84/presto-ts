@@ -7,6 +7,7 @@ export interface PrestoQueryParams {
     source: string,
     user:string,
     password?:string,
+    isBasicAuth?:boolean,
     host:string,
     port:number,
     checkStatusInterval:number,

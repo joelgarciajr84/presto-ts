@@ -57,7 +57,6 @@ export class Presto {
 
 
         } catch (error) {
-            console.error(error)
             this.params.notification(error);
             throw new Error(JSON.stringify(error));
 

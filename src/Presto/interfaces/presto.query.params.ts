@@ -10,5 +10,5 @@ export interface PrestoQueryParams {
     host:string,
     port:number,
     checkStatusInterval:number,
-    notification?: Function
+    notification?: (data:any)=>any
 }

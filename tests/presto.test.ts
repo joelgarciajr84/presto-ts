@@ -19,8 +19,8 @@ describe('Presto Test', () => {
             host: 'localhost',
             port: 8080,
             checkStatusInterval: 1000,
-            updatesNotification: (log) => console.log(log),
-            errorNotification: (error) => console.error(error)
+            updatesNotification: (log) => (log),
+            errorNotification: (error) => (error)
         }
         presto = new Presto(requestParams)
         prestoFake = Object.getPrototypeOf(presto)

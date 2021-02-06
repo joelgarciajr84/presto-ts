@@ -90,32 +90,3 @@ export class Presto {
     }
 
 }
-
-
-
-
-let counter: number = 1
-const letMeKnowFunction = (notification: PrestoResponse) => {
-
-    console.debug(`RESPOSTA -> ${counter}`)
-    console.debug(notification.stats.state)
-    counter++
-}
-
-const requestParams: PrestoQueryParams = {
-    query: 'SELECT * FROM pedidos',
-    catalog: 'mysqldb',
-    schema: 'clientes',
-    source: 'test-presto',
-    user: 'root',
-    host: 'localhost',
-    port: 8080,
-    checkStatusInterval: 5000,
-    notification: letMeKnowFunction
-}
-const presto = new Presto(requestParams, {keepAlive:true, maxSockets:5})
-
-for (let index = 1; index <= 10; index++) {
-    console.warn(`CLIENTE ENVIANDO REQUEST ${index}`)
-    presto.go()
-}

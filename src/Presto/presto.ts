@@ -1,20 +1,21 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
+import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 import { PrestoQueryParams } from "./interfaces/presto.query.params";
 import { PrestoHeaders } from "./interfaces/presto.headers";
 import * as http from 'http';
 import * as https from 'https';
 import { PrestoResponse } from "./interfaces/presto.response";
 import { PrestoStats } from "./interfaces/presto.status";
+import { PRESTO_STATEMENT_PATH, PREST_HTTP_METHODS } from "./presto.contants";
 
 export class Presto {
-
-    constructor(private readonly params: PrestoQueryParams) { }
+   
+    constructor(private readonly params: PrestoQueryParams, private readonly httpAgentOptions?: http.AgentOptions) {}
 
 
     private async request(): Promise<AxiosInstance> {
+
         return axios.create({
             baseURL: `http://${this.params.host}:${this.params.port}`,
-            timeout: 1000,
             headers: {
                 [PrestoHeaders.USER]: this.params.user,
                 [PrestoHeaders.CATALOG]: this.params.catalog,
@@ -23,14 +24,16 @@ export class Presto {
                 [PrestoHeaders.USER_AGENT]: this.params.source,
                 // [PrestoHeaders.AUTHORIZATION]: 'Basic ' + new Buffer(this.params.user + ":" + this.params.password).toString("base64")
             },
+            httpAgent: new http.Agent(this.httpAgentOptions   || {} ),
+            httpsAgent: new https.Agent(this.httpAgentOptions || {})
+
         });
     }
 
 
-    public async go(): Promise<void> {
+    public async go(): Promise<PrestoResponse> {
         try {
-            console.log("REQUEST RECEBIDO")
-            await this.sendToPresto('/v1/statement/', 'post')
+            return await this.sendToPresto(PRESTO_STATEMENT_PATH, PREST_HTTP_METHODS.POST)
 
         } catch (error) {
             console.error(error)
@@ -41,42 +44,18 @@ export class Presto {
 
     }
 
-    private async handlePrestoResponse(resultPresto: PrestoResponse):Promise<void> {
-        console.log("GERENCIANDO RESPOSTA")
-        // notify the response if stats is finished
-        if (resultPresto.stats.state !== PrestoStats.FINISHED) {
-            console.log("INSERINDO NA FILA")
-            this.insertInTheQueue(resultPresto.nextUri)
-        } else {
-            this.params.notification(resultPresto);
-        }
-
-        //Insert in the queue
-
-    }
-
-    private insertInTheQueue(nextUri: string) {
-        console.log("INSERINDO NA FILA")
-        setTimeout(async () => {
-            console.log('VAI FAZER GET DA FILA');
-            this.sendToPresto(nextUri, 'GET');
-        }, 2000);
-
-    }
-
-
-    private async sendToPresto(url: string, method: AxiosRequestConfig['method']): Promise<void> {
-        console.log("ENVIANDO AO PRESTO")
+    private async sendToPresto(url: string, method: AxiosRequestConfig['method']): Promise<PrestoResponse> {
+        
         try {
             const request = await this.request()
             let resultPresto: PrestoResponse
-            const isFirstRequest: boolean = (method === 'post')
+            const isFirstRequest: boolean = (method === PREST_HTTP_METHODS.POST)
 
             resultPresto = isFirstRequest
                 ? await (await request({ url, method, data: this.params.query })).data
                 : await (await request({ url, method })).data
 
-            await this.handlePrestoResponse(resultPresto);
+            return await this.handlePrestoResponse(resultPresto);
 
 
         } catch (error) {
@@ -88,26 +67,38 @@ export class Presto {
 
     }
 
+    private async handlePrestoResponse(resultPresto: PrestoResponse): Promise<PrestoResponse> {
+       
 
+        if (resultPresto.stats.state !== PrestoStats.FINISHED && resultPresto.nextUri ) {
+
+            this.insertInTheQueue(resultPresto.nextUri)
+
+        } else {
+            this.params.notification(resultPresto);
+            return resultPresto
+        }
+
+
+    }
+
+    private insertInTheQueue(nextUri: string) {
+        setTimeout(async () => {
+            this.sendToPresto(nextUri, PREST_HTTP_METHODS.GET);
+        }, this.params.checkStatusInterval);
+
+    }
 
 }
 
 
 
 
-
-
-
-
-
-
-
-
 let counter: number = 1
-const letMeKnowFunction = (notification: any) => {
+const letMeKnowFunction = (notification: PrestoResponse) => {
 
-    console.log(`RECEBEU ${counter}`)
-    console.log(notification)
+    console.debug(`RESPOSTA -> ${counter}`)
+    console.debug(notification.stats.state)
     counter++
 }
 
@@ -119,18 +110,12 @@ const requestParams: PrestoQueryParams = {
     user: 'root',
     host: 'localhost',
     port: 8080,
-    checkStatusInterval: 1000,
+    checkStatusInterval: 5000,
     notification: letMeKnowFunction
 }
-const presto = new Presto(requestParams)
+const presto = new Presto(requestParams, {keepAlive:true, maxSockets:5})
 
-for (let index = 1; index <= 1; index++) {
-    console.log(`CLIENTE ENVIANDO REQUEST ${index}`)
+for (let index = 1; index <= 10; index++) {
+    console.warn(`CLIENTE ENVIANDO REQUEST ${index}`)
     presto.go()
 }
-
-// presto.go().then((res) => {
-//     console.log(res)
-// }).catch((error) => {
-//     console.error(error)
-// })

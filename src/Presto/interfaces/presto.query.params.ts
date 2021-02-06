@@ -1,3 +1,5 @@
+import { PrestoResponse } from "./presto.response";
+
 export interface PrestoQueryParams {
     query: string,
     catalog: string,

@@ -8,42 +8,56 @@ import { PrestoStats } from "./interfaces/presto.status";
 import { PRESTO_STATEMENT_PATH, PREST_HTTP_METHODS } from "./presto.contants";
 
 export class Presto {
-   
-    constructor(private readonly params: PrestoQueryParams, private readonly httpAgentOptions?: http.AgentOptions) {}
+
+    private _querystatus: PrestoStats;
+    public get querystatus(): PrestoStats {
+        return this._querystatus;
+    }
+    public set querystatus(value: PrestoStats) {
+        this._querystatus = value;
+    }
+
+    constructor(private readonly params: PrestoQueryParams, private readonly httpAgentOptions?: http.AgentOptions) { }
 
 
     private async request(): Promise<AxiosInstance> {
+        try {
+            return axios.create({
+                baseURL: `http://${this.params.host}:${this.params.port}`,
+                headers: {
+                    [PrestoHeaders.USER]: this.params.user,
+                    [PrestoHeaders.CATALOG]: this.params.catalog,
+                    [PrestoHeaders.SCHEMA]: this.params.schema,
+                    [PrestoHeaders.SOURCE]: this.params.source,
+                    [PrestoHeaders.USER_AGENT]: this.params.source,
+                    // [PrestoHeaders.AUTHORIZATION]: 'Basic ' + new Buffer(this.params.user + ":" + this.params.password).toString("base64")
+                },
+                httpAgent: new http.Agent(this.httpAgentOptions || {}),
+                httpsAgent: new https.Agent(this.httpAgentOptions || {})
 
-        return axios.create({
-            baseURL: `http://${this.params.host}:${this.params.port}`,
-            headers: {
-                [PrestoHeaders.USER]: this.params.user,
-                [PrestoHeaders.CATALOG]: this.params.catalog,
-                [PrestoHeaders.SCHEMA]: this.params.schema,
-                [PrestoHeaders.SOURCE]: this.params.source,
-                [PrestoHeaders.USER_AGENT]: this.params.source,
-                // [PrestoHeaders.AUTHORIZATION]: 'Basic ' + new Buffer(this.params.user + ":" + this.params.password).toString("base64")
-            },
-            httpAgent: new http.Agent(this.httpAgentOptions   || {} ),
-            httpsAgent: new https.Agent(this.httpAgentOptions || {})
+            });
+        } catch (error) {
+            this.params.errorNotification(error);
+            throw new Error(error);
+        }
 
-        });
     }
 
 
     public async go(): Promise<PrestoResponse> {
+
         try {
             return await this.sendToPresto(PRESTO_STATEMENT_PATH, PREST_HTTP_METHODS.POST)
 
         } catch (error) {
-            throw new Error(JSON.stringify(error));
+            this.params.errorNotification(error);
+            throw new Error(error);
 
         }
 
     }
 
     private async sendToPresto(url: string, method: AxiosRequestConfig['method']): Promise<PrestoResponse> {
-        
         try {
             const request = await this.request()
             let resultPresto: PrestoResponse
@@ -57,32 +71,45 @@ export class Presto {
 
 
         } catch (error) {
-            this.params.notification(error);
-            throw new Error(JSON.stringify(error));
+            this.params.errorNotification(error);
+            throw new Error(error);
 
         }
 
     }
 
     private async handlePrestoResponse(resultPresto: PrestoResponse): Promise<PrestoResponse> {
-       
+        try {
+            this.params.updatesNotification(resultPresto);
 
-        if (resultPresto.stats.state !== PrestoStats.FINISHED && resultPresto.nextUri ) {
+            if (resultPresto.stats.state !== PrestoStats.FINISHED && resultPresto.nextUri) {
 
-            this.insertInTheQueue(resultPresto.nextUri)
+                this.insertInTheQueue(resultPresto.nextUri)
 
-        } else {
-            this.params.notification(resultPresto);
-            return resultPresto
+            } else if (resultPresto.stats.state === PrestoStats.FINISHED) {
+                this.querystatus = PrestoStats.FINISHED
+                return resultPresto
+            }
+        } catch (error) {
+            this.params.errorNotification(error);
+            throw new Error(error);
         }
+
 
 
     }
 
-    private insertInTheQueue(nextUri: string) {
-        setTimeout(async () => {
-            this.sendToPresto(nextUri, PREST_HTTP_METHODS.GET);
-        }, this.params.checkStatusInterval);
+    private async insertInTheQueue(nextUri: string): Promise<void> {
+        try {
+            setTimeout(async () => {
+                return await this.sendToPresto(nextUri, PREST_HTTP_METHODS.GET);
+            }, this.params.checkStatusInterval);
+        } catch (error) {
+            this.params.errorNotification(error);
+            throw new Error(error);
+        }
+
+
 
     }
 

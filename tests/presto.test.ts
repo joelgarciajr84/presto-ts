@@ -6,7 +6,7 @@ describe('Presto Test', () => {
 
     let requestParams: PrestoQueryParams
     let presto: Presto
-    let prestoFake:any
+    let prestoFake: any
     let prestoResponse: PrestoResponse
     beforeEach(() => {
 
@@ -18,7 +18,9 @@ describe('Presto Test', () => {
             user: 'root',
             host: 'localhost',
             port: 8080,
-            checkStatusInterval: 1000
+            checkStatusInterval: 1000,
+            updatesNotification: (log) => console.log(log),
+            errorNotification: (error) => console.error(error)
         }
         presto = new Presto(requestParams)
         prestoFake = Object.getPrototypeOf(presto)
@@ -34,7 +36,7 @@ describe('Presto Test', () => {
     it('Should Return Axios Instance', async () => {
 
         const axiosInstance = axios.create();
-        
+
         const spyPresto = jest.spyOn(prestoFake, 'request').mockImplementation().mockResolvedValue(axiosInstance)
 
         const resultPresto = await prestoFake.request()

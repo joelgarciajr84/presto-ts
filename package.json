@@ -1,7 +1,7 @@
 {
   "name": "presto-ts",
-  "version": "1.1.7",
-  "description": "A work in progress typescript Lib to query data on PrestoDB",
+  "version": "1.1.8",
+  "description": "Typescript lib that enable projects to interact with the SQL Query engine PrestoDB",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [

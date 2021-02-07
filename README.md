@@ -99,4 +99,6 @@ Every new status from the running query will be send to your updatesNotification
 
 > # Distributed SQL Query Engine for Big Data
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/67gXN5697Vw" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+[![Presto DB](https://img.youtube.com/vi/67gXN5697Vw/0.jpg)](https://www.youtube.com/watch?v=67gXN5697Vw)
+

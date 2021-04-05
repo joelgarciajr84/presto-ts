@@ -19,13 +19,28 @@ export interface Stats {
     spilledBytes: number;
 }
 
-export interface PrestoResponse {
+export interface PrestoResponse<T = any, S = any> {
     id: string;
     infoUri: string;
     nextUri: string;
     stats?: Stats;
-    data?: any[];
-    warnings?: any[];
+    data?: T[];
+    warnings?: S[];
+    columns?: Column[];
 }
 
+export interface Column {
+    name: string;
+    type: string;
+    typeSignature: TypeSignature;
+}
 
+export interface TypeSignature {
+   rawType: string;
+   arguments: TypeArgument[];
+}
+
+export interface TypeArgument {
+    kind: string;
+    value?: number | TypeSignature;
+}
